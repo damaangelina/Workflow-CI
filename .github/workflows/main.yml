@@ -50,7 +50,7 @@ jobs:
     # ===============================
     - name: Run mlflow project
       run: |
-        pip install -r MLProject/requirements.txt
+        pip install pandas scikit-learn mlflow matplotlib seaborn dagshub
         mlflow run MLProject --env-manager=local
         
     # ===============================
