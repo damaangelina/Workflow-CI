@@ -19,6 +19,15 @@ from sklearn.metrics import (
 from pathlib import Path
 
 # ======================================================
+# FORCE CLEAN MLFLOW STATE
+# ======================================================
+os.environ.pop("MLFLOW_RUN_ID", None)
+mlflow.end_run()
+
+# Tracking lokal 
+mlflow.set_tracking_uri("file:///tmp/mlruns")
+
+# ======================================================
 # MLFLOW SETUP
 # ======================================================
 mlflow.set_experiment("Model_Tuning_Experiment")
@@ -58,7 +67,10 @@ grid_search = GridSearchCV(
     n_jobs=-1
 )
 
-with mlflow.start_run(run_name="model_tuning_run"):
+# ======================================================
+# START MLFLOW RUN 
+# ======================================================
+with mlflow.start_run(run_name="model_tuning_run", nested=False):
     grid_search.fit(X_train, y_train)
 
     best_model = grid_search.best_estimator_
@@ -81,10 +93,10 @@ with mlflow.start_run(run_name="model_tuning_run"):
     # =====================
     # SAVE MODEL
     # =====================
-    mlflow.sklearn.log_model(best_model, "model")
+    mlflow.sklearn.log_model(best_model, artifact_path="model")
 
     # ==================================================
-    # ARTEFAK
+    # ARTEFAK 
     # ==================================================
     ARTIFACT_DIR = BASE_DIR / "artifacts"
     ARTIFACT_DIR.mkdir(exist_ok=True)
@@ -111,7 +123,7 @@ with mlflow.start_run(run_name="model_tuning_run"):
         json.dump(metric_info, f, indent=4)
     mlflow.log_artifact(str(metric_path))
 
-    # 3. Estimator
+    # 3. Estimator HTML
     estimator_path = ARTIFACT_DIR / "estimator.html"
     with open(estimator_path, "w") as f:
         f.write(f"<pre>{best_model}</pre>")
@@ -127,7 +139,7 @@ with mlflow.start_run(run_name="model_tuning_run"):
         )
     mlflow.log_artifact(str(report_path))
 
-    # 5. Train-Test Info 
+    # 5. Train-Test Info
     train_test_info = {
         "total_samples": len(df),
         "train_samples": len(X_train),
