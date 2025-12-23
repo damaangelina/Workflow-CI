@@ -16,30 +16,23 @@ from sklearn.metrics import (
     confusion_matrix,
     classification_report
 )
+from pathlib import Path
 
 # ======================================================
-# MLFLOW SETUP 
+# MLFLOW SETUP
 # ======================================================
-if os.getenv("GITHUB_ACTIONS") != "true":
-    try:
-        import dagshub
-        dagshub.init(
-            repo_owner="damaangelina",
-            repo_name="Eksperimen_SML_NiKomangDamaAngelina",
-            mlflow=True
-        )
-    except Exception:
-        pass 
-else:
-    mlflow.set_tracking_uri("file:///tmp/mlruns")
-
 mlflow.set_experiment("Model_Tuning_Experiment")
 
 # ======================================================
-# LOAD DATA
+# LOAD DATA 
 # ======================================================
-data_path = "cancer_preprocessing/breast_cancer_preprocessing.csv"
-df = pd.read_csv(data_path)
+BASE_DIR = Path(__file__).resolve().parent
+DATA_PATH = BASE_DIR / "cancer_preprocessing" / "breast_cancer_preprocessing.csv"
+
+if not DATA_PATH.exists():
+    raise FileNotFoundError(f"Dataset tidak ditemukan di path: {DATA_PATH}")
+
+df = pd.read_csv(DATA_PATH)
 
 X = df.drop("target", axis=1)
 y = df["target"]
@@ -72,7 +65,7 @@ with mlflow.start_run(run_name="model_tuning_run"):
     y_pred = best_model.predict(X_test)
 
     # =====================
-    # Metrics
+    # METRICS
     # =====================
     acc = accuracy_score(y_test, y_pred)
     prec = precision_score(y_test, y_pred)
@@ -86,54 +79,71 @@ with mlflow.start_run(run_name="model_tuning_run"):
     mlflow.log_metric("f1_score", f1)
 
     # =====================
-    # Save Model
+    # SAVE MODEL
     # =====================
     mlflow.sklearn.log_model(best_model, "model")
 
     # ==================================================
     # ARTEFAK
     # ==================================================
-    os.makedirs("artifacts", exist_ok=True)
+    ARTIFACT_DIR = BASE_DIR / "artifacts"
+    ARTIFACT_DIR.mkdir(exist_ok=True)
 
-    # Confusion Matrix
+    # 1. Confusion Matrix
     plt.figure(figsize=(8, 6))
     sns.heatmap(confusion_matrix(y_test, y_pred), annot=True, fmt="d", cmap="Blues")
     plt.title("Confusion Matrix")
     plt.tight_layout()
-    plt.savefig("artifacts/training_confusion_matrix.png")
+    cm_path = ARTIFACT_DIR / "training_confusion_matrix.png"
+    plt.savefig(cm_path)
     plt.close()
-    mlflow.log_artifact("artifacts/training_confusion_matrix.png")
+    mlflow.log_artifact(str(cm_path))
 
-    # Metric Info
+    # 2. Metric Info
     metric_info = {
         "accuracy": acc,
         "precision": prec,
         "recall": rec,
         "f1_score": f1
     }
-    with open("artifacts/metric_info.json", "w") as f:
+    metric_path = ARTIFACT_DIR / "metric_info.json"
+    with open(metric_path, "w") as f:
         json.dump(metric_info, f, indent=4)
-    mlflow.log_artifact("artifacts/metric_info.json")
+    mlflow.log_artifact(str(metric_path))
 
-    # Estimator
-    with open("artifacts/estimator.html", "w") as f:
+    # 3. Estimator
+    estimator_path = ARTIFACT_DIR / "estimator.html"
+    with open(estimator_path, "w") as f:
         f.write(f"<pre>{best_model}</pre>")
-    mlflow.log_artifact("artifacts/estimator.html")
+    mlflow.log_artifact(str(estimator_path))
 
-    # Classification Report
-    with open("artifacts/classification_report.json", "w") as f:
-        json.dump(classification_report(y_test, y_pred, output_dict=True), f, indent=4)
-    mlflow.log_artifact("artifacts/classification_report.json")
+    # 4. Classification Report
+    report_path = ARTIFACT_DIR / "classification_report.json"
+    with open(report_path, "w") as f:
+        json.dump(
+            classification_report(y_test, y_pred, output_dict=True),
+            f,
+            indent=4
+        )
+    mlflow.log_artifact(str(report_path))
 
-    # Train-Test Info
+    # 5. Train-Test Info 
     train_test_info = {
         "total_samples": len(df),
         "train_samples": len(X_train),
-        "test_samples": len(X_test)
+        "test_samples": len(X_test),
+        "n_features": X.shape[1]
     }
-    with open("artifacts/train_test_info.json", "w") as f:
+    train_test_path = ARTIFACT_DIR / "train_test_info.json"
+    with open(train_test_path, "w") as f:
         json.dump(train_test_info, f, indent=4)
-    mlflow.log_artifact("artifacts/train_test_info.json")
+    mlflow.log_artifact(str(train_test_path))
+
+    # 6. Model Parameters
+    model_params_path = ARTIFACT_DIR / "model_params.json"
+    with open(model_params_path, "w") as f:
+        json.dump(best_model.get_params(), f, indent=4)
+    mlflow.log_artifact(str(model_params_path))
 
     print("Training selesai.")
     print("Best parameters:", grid_search.best_params_)
