@@ -49,6 +49,8 @@ jobs:
     # Run mlflow project
     # ===============================
     - name: Run mlflow project
+      env:
+        MLFLOW_TRACKING_URI: file:///tmp/mlruns
       run: |
         pip install pandas scikit-learn mlflow matplotlib seaborn dagshub
         mlflow run MLProject --env-manager=local
@@ -81,6 +83,8 @@ jobs:
     # Build Docker Model 
     # ===============================
     - name: Build Docker Model
+      env:
+        MLFLOW_TRACKING_URI: file:///tmp/mlruns
       run: |
         mlflow models build-docker \
           --model-uri runs:/$RUN_ID/model \
