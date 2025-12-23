@@ -1,0 +1,133 @@
+name: MLflow CI Advanced
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  mlflow-advanced:
+    runs-on: ubuntu-latest
+
+    steps:
+    # ===============================
+    # Set up job
+    # ===============================
+    - name: Set up job
+      run: echo "Start job"
+
+    # ===============================
+    # Run actions/checkout@v3
+    # ===============================
+    - name: Run actions/checkout@v3
+      uses: actions/checkout@v3
+
+    # ===============================
+    # Set up Python 3.12.7
+    # ===============================
+    - name: Set up Python 3.12.7
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12.7'
+
+    # ===============================
+    # Check Env
+    # ===============================
+    - name: Check Env
+      run: |
+        python --version
+        pip --version
+
+    # ===============================
+    # Install dependencies
+    # ===============================
+    - name: Install dependencies
+      run: |
+        pip install mlflow dagshub docker
+
+    # ===============================
+    # Run mlflow project
+    # ===============================
+    - name: Run mlflow project
+      run: |
+        mlflow run MLProject
+
+    # ===============================
+    # Get latest MLflow run_id
+    # ===============================
+    - name: Get latest MLflow run_id
+      run: |
+        RUN_ID=$(ls -td mlruns/*/* | head -1 | awk -F'/' '{print $NF}')
+        echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+
+    # ===============================
+    # Install Python dependencies
+    # ===============================
+    - name: Install Python dependencies
+      run: |
+        pip install mlflow docker
+
+    # ===============================
+    # Upload to Google Drive
+    # ===============================
+    - name: Upload to Google Drive
+      uses: actions/upload-artifact@v4
+      with:
+        name: mlflow-artifacts
+        path: mlruns
+
+    # ===============================
+    # Build Docker Model
+    # ===============================
+    - name: Build Docker Model
+      run: |
+        mlflow models build-docker \
+          --model-uri runs:/${{ env.RUN_ID }}/model \
+          --name mlflow-model
+
+    # ===============================
+    # Log in to Docker Hub
+    # ===============================
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    # ===============================
+    # Tag Docker Image
+    # ===============================
+    - name: Tag Docker Image
+      run: |
+        docker tag mlflow-model ${{ secrets.DOCKER_USERNAME }}/mlflow-model:latest
+
+    # ===============================
+    # Push Docker Image
+    # ===============================
+    - name: Push Docker Image
+      run: |
+        docker push ${{ secrets.DOCKER_USERNAME }}/mlflow-model:latest
+
+    # ===============================
+    # Post Log in to Docker Hub
+    # ===============================
+    - name: Post Log in to Docker Hub
+      run: echo "Docker Hub logout"
+
+    # ===============================
+    # Post Set up Python 3.12.7
+    # ===============================
+    - name: Post Set up Python 3.12.7
+      run: echo "Post Python setup"
+
+    # ===============================
+    # Post Run actions/checkout@v3
+    # ===============================
+    - name: Post Run actions/checkout@v3
+      run: echo "Post checkout"
+
+    # ===============================
+    # Complete job
+    # ===============================
+    - name: Complete job
+      run: echo "Job completed"
