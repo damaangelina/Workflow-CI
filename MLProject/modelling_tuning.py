@@ -27,7 +27,7 @@ mlflow.set_experiment("Model_Tuning_Experiment")
 # LOAD DATA 
 # ======================================================
 BASE_DIR = Path(__file__).resolve().parent
-DATA_PATH = BASE_DIR / "cancer_preprocessing" / "breast_cancer_preprocessing.csv"
+DATA_PATH = BASE_DIR / "cancer_processing" / "processed_cancer.csv"
 
 if not DATA_PATH.exists():
     raise FileNotFoundError(f"Dataset tidak ditemukan di path: {DATA_PATH}")
