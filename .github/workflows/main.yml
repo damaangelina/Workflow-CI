@@ -50,8 +50,9 @@ jobs:
     # ===============================
     - name: Run mlflow project
       run: |
-        mlflow run MLProject
-
+        pip install -r MLProject/requirements.txt
+        mlflow run MLProject --env-manager=local
+        
     # ===============================
     # Get latest MLflow run_id
     # ===============================

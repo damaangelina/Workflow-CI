@@ -1,8 +1,5 @@
-name: model-training
-
-conda_env: conda.yaml
+name: mlflow-project
 
 entry_points:
   main:
-    command: >
-      python modelling_tuning.py
+    command: "python modelling_tuning.py"
