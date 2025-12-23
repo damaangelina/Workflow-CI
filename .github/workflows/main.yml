@@ -52,13 +52,13 @@ jobs:
       run: |
         pip install pandas scikit-learn mlflow matplotlib seaborn dagshub
         mlflow run MLProject --env-manager=local
-        
+
     # ===============================
-    # Get latest MLflow run_id
+    # Get latest MLflow run_id 
     # ===============================
     - name: Get latest MLflow run_id
       run: |
-        RUN_ID=$(ls -td mlruns/*/* | head -1 | awk -F'/' '{print $NF}')
+        RUN_ID=$(ls -td /tmp/mlruns/*/* | head -1 | awk -F'/' '{print $NF}')
         echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
 
     # ===============================
@@ -75,15 +75,15 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: mlflow-artifacts
-        path: mlruns
+        path: /tmp/mlruns
 
     # ===============================
-    # Build Docker Model
+    # Build Docker Model 
     # ===============================
     - name: Build Docker Model
       run: |
         mlflow models build-docker \
-          --model-uri runs:/${{ env.RUN_ID }}/model \
+          --model-uri runs:/$RUN_ID/model \
           --name mlflow-model
 
     # ===============================
